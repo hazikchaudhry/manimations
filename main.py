@@ -5,16 +5,20 @@ import numpy as np
 class FicksLaw(MovingCameraScene):
     def construct(self):
 
-        intro = Text("Fick's Law of Diffusion", font_size=48, color=YELLOW)
-        self.play(Write(intro))
-        self.wait(1)
-        self.play(FadeOut(intro))
-        self.atom()
-        self.show_stock()
-        self.show_concentration_gradient()
+        # intro#2 self.atom()
+        # intro#2 self.show_concentration_gradient()
+        # intro#2 self.show_change()
+        
         self.show_equation()
-        self.show_summary()
-        self.wait(2)
+        # Stock Market self.show_stock()
+    def show_change(self):
+        low = Text("High concentration").scale(0.6).to_edge(LEFT)
+      
+        high = Text("Low concentration").scale(0.6).to_edge(RIGHT)
+        arrow = Arrow(start=low.get_right(), end=high.get_left(), buff=0.5, stroke_width=6)
+        self.play(Write(low), Write(high), Write(arrow))
+        self.wait(1)
+        self.play(FadeOut(low), FadeOut(high), FadeOut(arrow))
 
     def show_concentration_gradient(self):
         rectangles = VGroup()
@@ -23,120 +27,113 @@ class FicksLaw(MovingCameraScene):
             rect = Rectangle(width=1.2, height=2, fill_color=color, fill_opacity=0.8)
             rect.shift(RIGHT * (i - 2) * 1.5)
             rectangles.add(rect)
-
-        high_label = Text("High C", font_size=24).next_to(rectangles[0], DOWN)
-        low_label = Text("Low C", font_size=24).next_to(rectangles[-1], DOWN)
+        
+        high_label = Text("Dense Group Of Atoms", font_size=24).next_to(rectangles[0], DOWN)
+        low_label = Text("Dispersed Group Of Atoms", font_size=24).next_to(rectangles[-1], DOWN)
         arrow = Arrow(start=LEFT*2, end=RIGHT*2, color=RED, buff=0).shift(DOWN*2)
-
+        arrow_label = Text("Over Time", font_size=18, color=BLUE_B).next_to(arrow, DOWN, buff=0.2)
         self.play(Create(rectangles), Write(high_label), Write(low_label))
-        self.play(Create(arrow))
         self.wait(1)
-        self.play(FadeOut(rectangles, high_label, low_label, arrow))
+         # Add arrow showing direction of diffusion (left to right - high to low concentration)
+        self.play(Create(arrow), Write(arrow_label))
+        self.wait(3)
+        
+
+        self.play(FadeOut(rectangles, high_label, low_label, arrow, arrow_label))
         
     def atom(self):
-        # Create two regions of atoms - high and low concentration
-        # High density region - randomly scattered atoms
+        # Create only high density region initially - randomly scattered atoms
         atoms_high_density = VGroup()
         for _ in range(100):
             atom = Dot(radius=0.05, color=BLUE)
-            # Random position within the high density area
+            # Random position within the high density area (left side)
             x = -3 + (random.random() - 0.5) * 2.5  # Scatter around x = -3
             y = (random.random() - 0.5) * 3  # Scatter vertically
             atom.move_to([x, y, 0])
             atoms_high_density.add(atom)
 
-        # Low density region - randomly scattered atoms
-        atoms_low_density = VGroup()
-        for _ in range(25):
-            atom = Dot(radius=0.05, color=BLUE)
-            # Random position within the low density area
-            x = 3 + (random.random() - 0.5) * 2.5  # Scatter around x = 3
-            y = (random.random() - 0.5) * 3  # Scatter vertically
-            atom.move_to([x, y, 0])
-            atoms_low_density.add(atom)
+        # Add a divider line between high and low concentration areas
+        divider = Line(start=[0, -2, 0], end=[0, 2, 0], color=WHITE, stroke_width=4)
+        
 
         # Add labels for the regions
-        high_label = Text("High Concentration", font_size=24, color=YELLOW).next_to(atoms_high_density, UP, buff=0.3)
-        low_label = Text("Low Concentration", font_size=24, color=YELLOW).next_to(atoms_low_density, UP, buff=0.3)
+        high_label = Text("High Concentration", font_size=24, color=YELLOW).move_to([-3, 2.5, 0])
+        low_label = Text("Low Concentration", font_size=24, color=YELLOW).move_to([3, 2.5, 0])
         
-        # Add arrow showing direction of diffusion
+        # Add arrow showing direction of diffusion (left to right - high to low concentration)
         diffusion_arrow = Arrow(start=LEFT*1.5, end=RIGHT*1.5, color=RED, buff=0.5, stroke_width=6)
         diffusion_arrow.shift(DOWN*2.5)
-        arrow_label = Text("Net Diffusion", font_size=20, color=RED).next_to(diffusion_arrow, DOWN, buff=0.2)
+        arrow_label = Text("Diffusion: High → Low Concentration", font_size=18, color=RED).next_to(diffusion_arrow, DOWN, buff=0.2)
 
-        # Show the full setup first
+        # Show only the high density atoms first
         self.play(
-            FadeIn(atoms_high_density), 
-            FadeIn(atoms_low_density),
+            FadeIn(atoms_high_density),
             Write(high_label),
-            Write(low_label)
+            
         )
-        self.wait(0.5)
-        
-        # Show the diffusion arrow
-        self.play(Create(diffusion_arrow), Write(arrow_label))
         self.wait(1)
+        
+
+      
 
         # 1. Zoom into individual atoms to see them bouncing randomly
         self.camera.frame.save_state()
         target_atom = atoms_high_density[45]  # Pick an atom in the middle of high density region
-        self.play(self.camera.frame.animate.scale(0.2).move_to(target_atom))
+        self.play(self.camera.frame.animate.scale(0.2).move_to(target_atom), run_time=1)
         
-        # Show individual atoms bouncing around randomly (Brownian motion)
-        for _ in range(3):
+        self.play(Create(divider),
+                  Write(low_label),
+                  Create(diffusion_arrow), 
+                  Write(arrow_label), run_time=0.4  )
+                  
+   
+        
+        # Show ALL atoms bouncing around randomly (Brownian motion) - faster
+        for _ in range(3):  # Reduced from 3 to 2 iterations
             random_wiggles = []
-            # Focus on atoms near our target
-            nearby_atoms = atoms_high_density[40:50]  # Get atoms around our focus area
-            for atom in nearby_atoms:
+            # Make ALL atoms in the scene move, not just nearby ones
+            for atom in atoms_high_density:
                 # Random small movements to simulate thermal motion
                 shift_x = (random.random() - 0.5) * 0.3
                 shift_y = (random.random() - 0.5) * 0.3
                 random_wiggles.append(atom.animate.shift(RIGHT * shift_x + UP * shift_y))
             
-            self.play(LaggedStart(*random_wiggles, lag_ratio=0.1, run_time=1))
-            self.wait(0.5)
+            self.play(LaggedStart(*random_wiggles, lag_ratio=0.05, run_time=0.8))  # Faster
+            self.wait(0.3)  # Shorter wait
 
-        # 2. Zoom out to show the overall movement from higher to lower concentration
-        self.play(Restore(self.camera.frame), run_time=2)
-        self.wait(0.5)
+        # 2. Zoom out to show the overall movement - faster
+        self.play(Restore(self.camera.frame), run_time=1.5)
+        self.wait(1)
 
-        # 3. Show the net diffusion from high to low concentration
-        # Animate atoms moving from higher to lower concentration area
+        # 3. Show atoms moving from HIGH to LOW concentration area (left to right)
+        # Move ALL atoms from high density (left) to low density area (right)
         diffusion_animations = []
-        atoms_to_move = atoms_high_density[:35]  # Move 35 atoms from high to low density
-        
-        for atom in atoms_to_move:
-            # Calculate movement towards low density area with more randomness
-            base_shift = RIGHT * (4 + random.random() * 3)  # Move rightward
+        # Move ALL atoms, not just 70
+        for atom in atoms_high_density:
+            # Calculate movement towards LOW density area (RIGHT side) - crosses the divider
+            base_shift = RIGHT * (5 + random.random() * 2)  # Move RIGHTWARD across divider to low concentration
             random_shift = UP * (random.random() - 0.5) * 4  # Add vertical randomness
             final_shift = base_shift + random_shift
             diffusion_animations.append(atom.animate.shift(final_shift))
+            
+            
+                # Show the low concentration label and diffusion arrow
 
-        # Add random movement to existing low density atoms
-        for atom in atoms_low_density:
-            # More chaotic movement for existing atoms
-            random_shift = (random.random() - 0.5) * 1.5 * RIGHT + (random.random() - 0.5) * 1.5 * UP
-            diffusion_animations.append(atom.animate.shift(random_shift))
 
-        # Also add some movement to remaining high density atoms
-        remaining_atoms = atoms_high_density[35:]
-        for atom in remaining_atoms:
-            small_shift = (random.random() - 0.5) * 0.8 * RIGHT + (random.random() - 0.5) * 0.8 * UP
-            diffusion_animations.append(atom.animate.shift(small_shift))
-
-        self.play(LaggedStart(*diffusion_animations, lag_ratio=0.02, run_time=5))
-        self.wait(1)
+        self.play(LaggedStart(*diffusion_animations, lag_ratio=0.005, run_time=4))  # All atoms move
+        self.wait(2)
 
         # 4. Clean up
         self.play(
-            FadeOut(atoms_high_density), 
-            FadeOut(atoms_low_density),
+            FadeOut(atoms_high_density),
             FadeOut(high_label),
             FadeOut(low_label),
             FadeOut(diffusion_arrow),
-            FadeOut(arrow_label)
+            FadeOut(arrow_label),
+            FadeOut(divider),
+         
         )
-        self.wait(0.5)     
+        self.wait(1)     
     def show_stock(self):
         # Create axes for "time" vs "price"
         axes = Axes(
@@ -147,6 +144,7 @@ class FicksLaw(MovingCameraScene):
 
         labels = axes.get_axis_labels(x_label="Time", y_label="Price")
         self.play(Create(axes), Write(labels))
+        self.wait(1)
 
         # Define 8 different colors for the lines
         colors = [YELLOW, BLUE, RED, GREEN, PURPLE, ORANGE, PINK, TEAL]
@@ -172,21 +170,11 @@ class FicksLaw(MovingCameraScene):
             stock_lines.append(line)
 
         # Animate all lines being drawn with a staggered effect
-        self.play(LaggedStart(*[Create(line, run_time=1.5) for line in stock_lines], lag_ratio=0.2))
+        self.play(LaggedStart(*[Create(line, run_time=3) for line in stock_lines], lag_ratio=0.2))
         self.wait(1)
         
-        # Add overall trend lines for each stock
-        trend_lines = []
-        for i, (y_vals, color) in enumerate(zip(y_values_list, colors)):
-            # Create trend line from start to end
-            trend_start = axes.coords_to_point(0, y_vals[0])
-            trend_end = axes.coords_to_point(10, y_vals[-1])
-            trend_line = Line(trend_start, trend_end, color=color, stroke_width=6, stroke_opacity=0.7)
-            trend_lines.append(trend_line)
-        
-        # Show all trend lines
-        self.play(LaggedStart(*[Create(trend) for trend in trend_lines], lag_ratio=0.1))
-        self.wait(1)
+
+
         
         # Now combine all lines into one final upward trend
         # Calculate average y values across all stocks
@@ -202,13 +190,13 @@ class FicksLaw(MovingCameraScene):
         
         # Fade out individual lines and show the combined trend
         self.play(
-            *[FadeOut(line) for line in stock_lines],
-            *[FadeOut(trend) for trend in trend_lines],
+            *[FadeOut(line) for line in stock_lines]
+            
         )
         self.play(Create(final_line, run_time=2))
         
         # Add label for the final trend
-        trend_label = Text("Combined Positive Trend", font_size=24, color=WHITE)
+        trend_label = Text("Combined Trend", font_size=24, color=BLUE)
         trend_label.next_to(final_line, UP, buff=0.5)
         self.play(Write(trend_label))
         self.wait(2)
@@ -216,14 +204,57 @@ class FicksLaw(MovingCameraScene):
         # Clean up
         all_objects = VGroup(final_line, trend_label, axes, labels)
         self.play(FadeOut(all_objects))
-        self.wait(1)
+      
 
     def show_equation(self):
-        eq = MathTex(r"J = -D \frac{dC}{dx}", font_size=72, color=WHITE)
-        self.play(Write(eq))
-        self.wait(4)
-        self.play(FadeOut(eq))
+        # Define unique colors for each component of the equation
+        J_color = BLUE
+        D_color = RED
+        C_color = GREEN
 
+        # Create the equation, breaking it into parts to be animated individually
+        eq = MathTex(r"J", r"=", r"-D", r"\frac{dC}{dx}", font_size=96)
+        
+        # Create text labels for each part of the equation
+        # These will be placed relative to the equation components
+        j_label = Text("Rate of Diffusion", font_size=36).next_to(eq[0], UP, buff=0.5)
+        d_label = Text("Diffusivity", font_size=36).next_to(eq[2], UP, buff=0.5)
+        c_label = Text("Concentration Gradient", font_size=36).next_to(eq[3], DOWN, buff=0.5)
+
+        # --- Animation starts here ---
+
+        # Timestamp 0:00 - 0:02: "All right, time for the equation."
+        # The equation is written to the screen in the default color (white).
+        self.play(Write(eq))
+
+        # Timestamp 0:02 - 0:06: "This is the rate of diffusion..."
+        # Change the color of 'J' and write its corresponding label.
+        self.play(
+            eq[0].animate.set_color(J_color),
+            Write(j_label)
+        )
+        self.wait(4)
+
+        # Timestamp 0:06 - 0:15: "Next is the diffusivity..."
+        # Change the color of '-D' and write its label. The color of 'J' persists.
+        self.play(
+            eq[2].animate.set_color(D_color),
+            Write(d_label)
+        )
+        self.wait(9)
+
+        # Timestamp 0:15 - 0:30: "Finally, we have the concentration gradient..."
+        # Change the color of the gradient term and write its label.
+        self.play(
+            eq[3].animate.set_color(C_color),
+            Write(c_label)
+        )
+        self.wait(15)
+
+        # Group all the created objects (the equation and all three labels)
+        # into a single VGroup for a clean, simultaneous fade-out.
+        all_objects = VGroup(eq, j_label, d_label, c_label)
+        self.play(FadeOut(all_objects))
 
     def show_summary(self):
         points = VGroup(
